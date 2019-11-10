@@ -1,11 +1,49 @@
 
 import openpyxl
 import polyglot
+import math
+from polyglot.text import Text
 from pprint import pprint
 
 
+def calculate_polarity(text, language_code):
+	if not text:
+		return 0
+	
+	analysis_text = Text(str(text), hint_language_code=language_code)
+	try:
+		polarity = analysis_text.polarity
+		return polarity
+	except:
+		return 0
+
+def show_polarity(text):
+	text = Text(str(text))
+	print("{:<16}{}".format("Word", "Polarity")+"\n"+"-"*30)
+	for w in text.words:
+		print("{:<16}{:>2}".format(w, w.polarity))
+
+
+def negative_word_count(text, language_code="la"):
+	text = Text(str(text), hint_language_code=language_code)
+	negative_words = 0
+	for w in text.words:
+		if w.polarity == -1:
+			negative_words += 1
+	return negative_words
+
+
+def positive_word_count(text, language_code="la"):
+	text = Text(str(text), hint_language_code=language_code)
+	negative_words = 0
+	for w in text.words:
+		if w.polarity == 1:
+			negative_words += 1
+	return negative_words
+
 
 class Motet:
+
 	def __init__(self, composer, title, triplum, motetus, tenor, triplum_english, motetus_english, tenor_english,	source_link):
 		self.composer = composer
 		self.title = title
@@ -16,6 +54,72 @@ class Motet:
 		self.motetus_english = motetus_english
 		self.tenor_english = tenor_english
 		self.source_link = source_link
+
+	def triplum_polarity(self):
+		return calculate_polarity(self.triplum, 'la')
+
+	def motetus_polarity(self):
+		return calculate_polarity(self.motetus, 'la')
+
+	def tenor_polarity(self):
+		return calculate_polarity(self.tenor, 'la')
+
+	def triplum_english_polarity(self):
+		return calculate_polarity(self.triplum_english, 'en')
+
+	def motetus_english_polarity(self):
+		return calculate_polarity(self.motetus_english, 'en')
+
+	def tenor_english_polarity(self):
+		return calculate_polarity(self.tenor_english, 'en')
+
+	def negative_word_count(self, text_type, language_code='la'):
+		if text_type == "triplum":
+			if language_code == 'la':
+				my_text = self.triplum
+			elif language_code == 'en':
+				my_text = self.triplum_english
+		elif text_type == "motetus":
+			if language_code == 'la':
+				my_text = self.motetus
+			elif language_code == 'en':
+				my_text = self.motetus_english
+		elif text_type == "tenor":
+			if language_code == 'la':
+				my_text = self.tenor
+			elif language_code == 'en':
+				my_text = self.tenor_english
+
+		return negative_word_count(my_text, language_code)
+
+	def positive_word_count(self, text_type, language_code='la'):
+		if text_type == "triplum":
+			if language_code == 'la':
+				my_text = self.triplum
+			elif language_code == 'en':
+				my_text = self.triplum_english
+		elif text_type == "motetus":
+			if language_code == 'la':
+				my_text = self.motetus
+			elif language_code == 'en':
+				my_text = self.motetus_english
+		elif text_type == "tenor":
+			if language_code == 'la':
+				my_text = self.tenor
+			elif language_code == 'en':
+				my_text = self.tenor_english
+
+		return positive_word_count(my_text, language_code)
+
+	def sentiment_difference(self, language_code='la'):
+		triplum_rank = self.positive_word_count("triplum", language_code) - self.negative_word_count("triplum", language_code) 
+		motetus_rank = self.positive_word_count("motetus", language_code) - self.negative_word_count("motetus", language_code)
+
+		#print(f"Triplum Score: {triplum_rank}  Motetus Score: {motetus_rank}  Total Score: {abs(triplum_rank - motetus_rank)}")
+		return abs(triplum_rank - motetus_rank)
+
+
+
 
 
 
@@ -37,8 +141,29 @@ for row in range(2, sheet.max_row + 1):
 	NewMotet = Motet(composer, title, triplum, motetus, tenor, triplum_english, motetus_english, tenor_english,	source_link)
 	motets.append(NewMotet)
 
-#for row in range(2, sheet.max_row + 1):
-	#pprint(sheet['B' + str(row)].value)
+
+
+motets.sort(key= lambda x: x.sentiment_difference())
+
+for motet in motets:
+	print(f"Title: {motet.title} Score: {motet.sentiment_difference()}")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 	
 
 
