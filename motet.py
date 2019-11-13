@@ -2,7 +2,10 @@
 import openpyxl
 import polyglot
 import math
+import statistics
+from polyglot.downloader import downloader
 from polyglot.text import Text
+from polyglot.transliteration import Transliterator
 from pprint import pprint
 
 
@@ -35,11 +38,11 @@ def negative_word_count(text, language_code="la"):
 
 def positive_word_count(text, language_code="la"):
 	text = Text(str(text), hint_language_code=language_code)
-	negative_words = 0
+	positive_words = 0
 	for w in text.words:
 		if w.polarity == 1:
-			negative_words += 1
-	return negative_words
+			positive_words += 1
+	return positive_words
 
 
 class Motet:
@@ -118,9 +121,15 @@ class Motet:
 		#print(f"Triplum Score: {triplum_rank}  Motetus Score: {motetus_rank}  Total Score: {abs(triplum_rank - motetus_rank)}")
 		return abs(triplum_rank - motetus_rank)
 
+	def sentiment_average(self, language_code='la'):
+		triplum_scores = (self.positive_word_count("triplum", language_code), self.negative_word_count("triplum", language_code)) 
+		motetus_scores = (self.positive_word_count("motetus", language_code), self.negative_word_count("motetus", language_code))
 
+		triplum_rank = statistics.mean(triplum_scores)
+		motetus_rank = statistics.mean(motetus_scores)
 
-
+		#print(f"Triplum Score: {triplum_rank}  Motetus Score: {motetus_rank}  Total Score: {abs(triplum_rank - motetus_rank)}")
+		return abs(triplum_rank - motetus_rank)
 
 
 wb = openpyxl.load_workbook("Motet Data.xlsx")
@@ -147,6 +156,8 @@ motets.sort(key= lambda x: x.sentiment_difference())
 
 for motet in motets:
 	print(f"Title: {motet.title} Score: {motet.sentiment_difference()}")
+	
+
 
 
 
