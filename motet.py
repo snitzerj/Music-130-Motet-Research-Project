@@ -1,15 +1,15 @@
 
 import openpyxl
+from openpyxl import Workbook
 import polyglot
 import math
 import statistics
 from polyglot.downloader import downloader
 from polyglot.text import Text
-from polyglot.transliteration import Transliterator
 from pprint import pprint
 
 
-def calculate_polarity(text, language_code):
+def calculate_polarity(text, language_code="la"):
 	if not text:
 		return 0
 	
@@ -25,6 +25,11 @@ def show_polarity(text):
 	print("{:<16}{}".format("Word", "Polarity")+"\n"+"-"*30)
 	for w in text.words:
 		print("{:<16}{:>2}".format(w, w.polarity))
+	try:
+		polarity = text.polarity
+	except:
+		polariy = 0
+	print("{:<16}{:>2}".format("total", polarity))
 
 def show_sentiment_words(text, text_type=""):
 	text = Text(str(text))
@@ -33,6 +38,12 @@ def show_sentiment_words(text, text_type=""):
 		polarity = w.polarity
 		if polarity != 0:
 			print("{:<16}{:>2}".format(w, w.polarity))
+	try:
+		polarity = text.polarity
+	except:
+		polariy = 0
+	print("{:<16}{:>2}".format("total", polarity))
+
 
 def negative_word_count(text, language_code="la"):
 	text = Text(str(text), hint_language_code=language_code)
@@ -121,22 +132,100 @@ class Motet:
 
 		return positive_word_count(my_text, language_code)
 
-	def sentiment_difference(self, language_code='la'):
-		triplum_rank = self.positive_word_count("triplum", language_code) - self.negative_word_count("triplum", language_code) 
-		motetus_rank = self.positive_word_count("motetus", language_code) - self.negative_word_count("motetus", language_code)
+	def triplum_sum(self, language_code='la'):
+		return self.positive_word_count("triplum", language_code) - self.negative_word_count("triplum", language_code)
 
-		#print(f"Triplum Score: {triplum_rank}  Motetus Score: {motetus_rank}  Total Score: {abs(triplum_rank - motetus_rank)}")
+	def motetus_sum(self, language_code='la'):
+		return self.positive_word_count("motetus", language_code) - self.negative_word_count("motetus", language_code)
+
+
+
+	def sentiment_difference(self, language_code='la'):
+		triplum_rank = self.triplum_sum(language_code)
+		motetus_rank = self.motetus_sum(language_code)
+
 		return abs(triplum_rank - motetus_rank)
 
 	def sentiment_average(self, language_code='la'):
-		triplum_scores = (self.positive_word_count("triplum", language_code), self.negative_word_count("triplum", language_code)) 
-		motetus_scores = (self.positive_word_count("motetus", language_code), self.negative_word_count("motetus", language_code))
-
-		triplum_rank = statistics.mean(triplum_scores)
-		motetus_rank = statistics.mean(motetus_scores)
+		triplum_rank = calculate_polarity(self.triplum, language_code)
+		motetus_rank = calculate_polarity(self.motetus, language_code)
 
 		#print(f"Triplum Score: {triplum_rank}  Motetus Score: {motetus_rank}  Total Score: {abs(triplum_rank - motetus_rank)}")
 		return abs(triplum_rank - motetus_rank)
+
+		
+	def get_triplum_sentiment_words(self):
+		words = {}
+		text = Text(self.triplum)
+		for w in text.words:
+			polarity = w.polarity
+			if polarity != 0:
+				words[w] = polarity
+		words['Total Average'] = calculate_polarity(self.triplum)
+		words['Total Sum'] = self.triplum_sum()
+
+		return words
+
+	def get_motetus_sentiment_words(self):
+		words = {}
+		text = Text(self.motetus)
+		for w in text.words:
+			polarity = w.polarity
+			if polarity != 0:
+				words[w] = polarity
+		words['Total Average'] = calculate_polarity(self.motetus)
+		words['Total Sum'] = self.motetus_sum()
+
+		return words
+
+	def write_to_table(self):
+		book = Workbook()
+		sheet = book.active
+		sheet['A1'] = "Triplum Sentiment Words"
+		sheet['B1'] = "Sentiment Value"
+
+		row = 2
+		for word, score in self.get_triplum_sentiment_words().items():
+			sheet['A' + str(row)] = word
+			sheet['B' + str(row)] = score
+			row += 1
+
+		row += 1
+		sheet['A' + str(row)] = "Motetus Sentiment Words"
+		sheet['B' + str(row)] = "Sentiment Value"
+
+		row += 1
+
+		for word, score in self.get_motetus_sentiment_words().items():
+			sheet['A' + str(row)] = word
+			sheet['B' + str(row)] = score
+			row += 1
+
+
+		sheet['D1'] = "Triplum"
+		sheet['E1'] = "Motetus"
+		sheet['F1'] = "Tenor"
+		sheet['G1'] = "Triplum English Translation"
+		sheet['H1'] = "Motetus English Translation"
+		sheet['I1'] = "Tenor English Translation"
+
+		sheet['D2'] = self.triplum
+		sheet['E2'] = self.motetus
+		sheet['F2'] = self.tenor
+		sheet['G2'] = self.triplum_english
+		sheet['H2'] = self.motetus_english
+		sheet['I2'] = self.tenor_english
+
+		row += 1
+		sheet['A' + str(row)] = "Sentiment Difference"
+		sheet['B' + str(row)] = self.sentiment_difference()
+
+		row += 1
+		sheet['A' + str(row)] = "Sentiment Average Difference"
+		sheet['B' + str(row)] = self.sentiment_average()
+
+		book.save(f"{self.title}.xlsx")
+			
 
 
 wb = openpyxl.load_workbook("Motet Data.xlsx")
@@ -159,12 +248,45 @@ for row in range(2, sheet.max_row + 1):
 
 
 
-motets.sort(key= lambda x: x.sentiment_difference())
-
 for motet in motets:
-	print(f"Title: {motet.title}")
-	show_sentiment_words(motet.triplum)
-	show_sentiment_words(motet.motetus)
+	motet.write_to_table()
+
+
+def motets_ordered_by_difference(motets):
+	motets.sort(key= lambda x: x.sentiment_difference())
+	book = Workbook()
+	sheet = book.active
+	sheet['A1'] = "Title"
+	sheet['B1'] = "Total Difference Score"
+
+	row = 2
+	for motet in motets:
+		sheet['A' + str(row)] = motet.title
+		sheet['B' + str(row)] = motet.sentiment_difference()
+		row += 1
+
+	book.save(f"Motets Ordered by Difference.xlsx")
+
+def motets_ordered_by_average(motets):
+	motets.sort(key= lambda x: x.sentiment_average())
+	book = Workbook()
+	sheet = book.active
+	sheet['A1'] = "Title"
+	sheet['B1'] = "Total Average Score"
+
+	row = 2
+	for motet in motets:
+		sheet['A' + str(row)] = motet.title
+		sheet['B' + str(row)] = motet.sentiment_average()
+		row += 1
+
+	book.save(f"Motets Ordered by Average.xlsx")
+
+
+motets_ordered_by_difference(motets)
+motets_ordered_by_average(motets)
+
+	
 
 	
 
