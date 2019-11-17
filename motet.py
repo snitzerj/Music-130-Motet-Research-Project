@@ -26,6 +26,13 @@ def show_polarity(text):
 	for w in text.words:
 		print("{:<16}{:>2}".format(w, w.polarity))
 
+def show_sentiment_words(text, text_type=""):
+	text = Text(str(text))
+	print("{:<16}{}".format("Words", "Polarity")+"\n"+"-"*30)	
+	for w in text.words:
+		polarity = w.polarity
+		if polarity != 0:
+			print("{:<16}{:>2}".format(w, w.polarity))
 
 def negative_word_count(text, language_code="la"):
 	text = Text(str(text), hint_language_code=language_code)
@@ -155,7 +162,10 @@ for row in range(2, sheet.max_row + 1):
 motets.sort(key= lambda x: x.sentiment_difference())
 
 for motet in motets:
-	print(f"Title: {motet.title} Score: {motet.sentiment_difference()}")
+	print(f"Title: {motet.title}")
+	show_sentiment_words(motet.triplum)
+	show_sentiment_words(motet.motetus)
+
 	
 
 
