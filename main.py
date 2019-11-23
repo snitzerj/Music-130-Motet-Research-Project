@@ -8,6 +8,7 @@ motets = import_motet_data("Motet Data.xlsx")
 
 
 for motet in motets:
+	print(motet.title)
 	motet.write_to_table()
 
 

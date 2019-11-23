@@ -5,6 +5,23 @@ import statistics
 import math
 import openpyxl
 from openpyxl import Workbook
+from cltk.lemmatize.latin.backoff import BackoffLatinLemmatizer
+from cltk.corpus.utils.importer import CorpusImporter
+from cltk.stem.latin.j_v import JVReplacer
+
+corpus_importer = CorpusImporter('latin')
+corpus_importer.import_corpus('latin_models_cltk')
+lemmatizer = BackoffLatinLemmatizer()
+j = JVReplacer()
+
+
+def lemmatize(text):
+	text = j.replace(text)
+	tokens = [token for token in text.split()]
+	lemmatized = lemmatizer.lemmatize(tokens)
+	lemmatized_text = " ".join([token[1] for token in lemmatized])
+	return lemmatized_text
+
 
 def motets_ordered_by_difference(motets):
 	motets.sort(key= lambda x: x.sentiment_difference())
@@ -42,11 +59,12 @@ def motets_ordered_by_average(motets):
 
 
 
+
 def calculate_polarity(text, language_code="la"):
 	if not text:
 		return 0
 	
-	analysis_text = Text(str(text), hint_language_code=language_code)
+	analysis_text = Text(lemmatize(str(text)), hint_language_code=language_code)
 	try:
 		polarity = analysis_text.polarity
 		return polarity
@@ -54,7 +72,7 @@ def calculate_polarity(text, language_code="la"):
 		return 0
 
 def show_polarity(text):
-	text = Text(str(text))
+	text = Text(lemmatize(str(text)))
 	print("{:<16}{}".format("Word", "Polarity")+"\n"+"-"*30)
 	for w in text.words:
 		print("{:<16}{:>2}".format(w, w.polarity))
@@ -65,7 +83,7 @@ def show_polarity(text):
 	print("{:<16}{:>2}".format("total", polarity))
 
 def show_sentiment_words(text, text_type=""):
-	text = Text(str(text))
+	text = Text(lemmatize(str(text)))
 	print("{:<16}{}".format("Words", "Polarity")+"\n"+"-"*30)	
 	for w in text.words:
 		polarity = w.polarity
@@ -74,12 +92,12 @@ def show_sentiment_words(text, text_type=""):
 	try:
 		polarity = text.polarity
 	except:
-		polariy = 0
+		polarity = 0
 	print("{:<16}{:>2}".format("total", polarity))
 
 
-def negative_word_count(text, language_code="la"):
-	text = Text(str(text), hint_language_code=language_code)
+def negative_word_count(text, language_code='la'):
+	text = Text(lemmatize(str(text)), hint_language_code=language_code)
 	negative_words = 0
 	for w in text.words:
 		if w.polarity == -1:
@@ -87,12 +105,30 @@ def negative_word_count(text, language_code="la"):
 	return negative_words
 
 
-def positive_word_count(text, language_code="la"):
-	text = Text(str(text), hint_language_code=language_code)
+def positive_word_count(text, language_code='la'):
+	text = Text(lemmatize(str(text)), hint_language_code=language_code)
 	positive_words = 0
 	for w in text.words:
 		if w.polarity == 1:
 			positive_words += 1
 	return positive_words
+
+
+def get_sentiment_words(text, language_code='la'):
+	words = {}
+	polytext = Text(lemmatize(str(text)))
+	sum = 0
+	for w in polytext.words:
+		polarity = w.polarity
+		if polarity != 0:
+			words[w] = polarity if w not in words else words[w] + polarity
+			sum += polarity
+	words['Total Average'] = calculate_polarity(text)
+	words['Total Sum'] = sum
+
+	return words
+
+
+		
 
 
