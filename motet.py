@@ -14,7 +14,7 @@ from motet_utils import get_sentiment_words
 
 class Motet:
 
-	def __init__(self, composer, title, triplum, motetus, tenor, triplum_english, motetus_english, tenor_english,	source_link):
+	def __init__(self, composer, title, triplum, motetus, tenor, triplum_english, motetus_english, tenor_english, source_link):
 		self.composer = composer
 		self.title = title
 		self.triplum = triplum

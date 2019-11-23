@@ -96,23 +96,26 @@ def show_sentiment_words(text, text_type=""):
 	print("{:<16}{:>2}".format("total", polarity))
 
 
+def word_count_generator(s):
+	score = s
+	def word_count(text, language_code='la'):
+		text = Text(lemmatize(str(text)), hint_language_code=language_code)
+		words = 0
+		for w in text.words:
+			if w.polarity == score:
+				words += 1
+		return words
+
+	return word_count
+
 def negative_word_count(text, language_code='la'):
-	text = Text(lemmatize(str(text)), hint_language_code=language_code)
-	negative_words = 0
-	for w in text.words:
-		if w.polarity == -1:
-			negative_words += 1
-	return negative_words
+	word_counter = word_count_generator(-1)
+	return word_counter(text, language_code)
 
 
 def positive_word_count(text, language_code='la'):
-	text = Text(lemmatize(str(text)), hint_language_code=language_code)
-	positive_words = 0
-	for w in text.words:
-		if w.polarity == 1:
-			positive_words += 1
-	return positive_words
-
+	word_counter = word_count_generator(1)
+	return word_counter(text, language_code)
 
 def get_sentiment_words(text, language_code='la'):
 	words = {}
